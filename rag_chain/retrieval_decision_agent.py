@@ -1,3 +1,5 @@
+import os
+
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import Runnable
@@ -7,10 +9,10 @@ llm = ChatDeepSeek(
     model="deepseek-chat",
     temperature=0,
     max_tokens=None,
-    api_key="sk-524bc7e636d34a6a8c102be54acbc16a"
+    api_key=os.getenv("DEEPSEEK_API_KEY")
 )
 
-# ✅ 判断是否需要检索的提示词（优化版本）
+# 判断是否需要检索的提示词
 prompt = ChatPromptTemplate.from_messages([
     ("system",
     """你是一个用于判断是否需要重新进行知识库检索的助手。
