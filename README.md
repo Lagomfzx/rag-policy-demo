@@ -1,237 +1,136 @@
-下面是一份详细的技术报告文档，回顾了我们整个 RAG 问答系统的封装过程、架构设计、主要模块以及后续优化扩展方向。这份文档旨在记录项目背景、技术选择、实现细节和经验总结，供今后维护、扩展和部署参考。
+# Policy RAG｜惠企金融政策智能问答系统
 
+> 我的金融专业硕士毕业论文原型：把政策文本转化为可检索的向量与摘要索引，并通过 Agentic RAG 完成多轮问答、检索路由和证据回溯。
 
+论文题目：**《基于大语言模型的惠企金融政策问答系统实现研究》**
 
-------
+## 30 秒了解项目
 
+| 招聘官可能关心的问题 | 回答 |
+| --- | --- |
+| 解决什么问题？ | 惠企政策文本长、条款分散、检索门槛高；系统帮助企业按自然语言定位适用政策并获得可追溯回答。 |
+| 我的工作是什么？ | 独立完成问题定义、文档清洗、文本切分、Embedding、摘要检索、FAQ 路由、多轮对话 Agent、RAG 链路、FastAPI 接口、前端衔接与评测。 |
+| 文本如何转成向量？ | 使用 BAAI/bge-large-zh-v1.5 对政策摘要编码，Chroma 保存向量；MultiVectorRetriever 用摘要召回并返回绑定的原始政策段落。 |
+| 为什么不只用普通向量检索？ | 系统同时比较 BM25、原文向量、混合检索和摘要检索，并增加 FAQ 快速通道与“是否重新检索”决策 Agent。 |
+| 有什么量化结果？ | 论文的独立测试集含 238 个问答对；摘要检索 Context Recall 为 0.964。Hybrid RAG 的 Faithfulness 为 0.9600，Semantic Similarity 为 0.8280。 |
+| 是否是生产系统？ | 这是论文研究与可运行原型，不代表已完成高并发、权限体系、长期监控和商业化运维。 |
 
+## 系统流程
 
-**技术报告：基于 LangChain 的 RAG 问答系统封装**
+~~~mermaid
+flowchart LR
+    A["用户问题 + 企业信息 + 最近 5 轮对话"] --> B["检索决策 Agent"]
+    B -->|高频标准问题| C["FAQ 快速匹配"]
+    B -->|新主题| D["摘要向量检索"]
+    B -->|追问| E["复用上一轮证据"]
+    D --> F["MultiVectorRetriever"]
+    F --> G["返回对应原始政策段落"]
+    C --> H["答案"]
+    E --> I["LLM 生成"]
+    G --> I
+    I --> H
+    H --> J["政策名称 / 依据 / 原文摘录"]
+~~~
 
+## 我的核心工作
 
+### 1. 政策文本结构化与向量化
 
-**1. 项目背景与目标**
+- 清洗政策 Markdown，按标题层级切分，提取政策名称与政策依据。
+- 为每个原始文档块生成摘要，使用中文 BGE Embedding 编码摘要。
+- 通过文档 ID 将“摘要向量”与“原始政策段落”绑定：检索轻量摘要，回答时回到原文证据。
 
+### 2. Hybrid / Agentic RAG
 
+- FAQ Matcher：高频标准问题直接命中，减少无必要的生成调用。
+- Retrieval Decision Agent：结合最近 5 轮对话判断当前输入是新主题、连续追问还是寒暄。
+- 连续追问时复用上一轮检索证据；新主题触发重新检索，降低对话跳题造成的上下文污染。
+- 将企业地区、行业、成立年限、员工规模和注册资本作为可选背景，支持更针对性的政策回答。
 
-随着大语言模型（LLM）的迅速发展，基于 Retrieval Augmented Generation（RAG）的问答系统能够结合文档检索与强大的生成模型，在知识密集型场景下实现高质量答案输出。本项目利用 LangChain 架构，实现一个针对“惠企政策”的问答系统，整合了以下关键功能：
+### 3. 可追溯回答与服务封装
 
-​	•	**文档检索**：利用向量库（Chroma）和预训练 Embedding 模型对文档进行预处理和检索。
+- Prompt 要求回答严格基于检索内容，无法回答时明确拒答。
+- API 返回答案、对话历史以及政策标题、政策依据和原文摘录。
+- 使用 FastAPI 封装 `/api/policy-qa`，并挂载静态前端，形成端到端演示原型。
+- 日志记录请求、路由判断、FAQ 命中、检索文档和最终回答，便于错误分析。
 
-​	•	**问答链路**：基于 LCEL（LangChain Expression Language）构建 rag_chain，将检索结果、聊天记录和用户问题整合为 prompt 输入给 LLM。
+## 论文评测结果
 
-​	•	**多轮对话记忆**：通过设计聊天记录管理函数，实现对多轮对话历史的动态拼接与传递。
+评测使用 238 个相互隔离的问答对（20 个真实高频问题 + 218 个经筛选的合成问题），避免直接用构建知识库时的提示样本作测试。
 
-​	•	**前后端衔接规划**：后续计划将现有的后端逻辑封装为 API 接口，与已设计好的前端页面（React）进行数据交互，最终形成一个完整的网页应用产品。
+### 检索层
 
+| 方法 | 代表性结果 |
+| --- | ---: |
+| 摘要检索 Context Recall | **0.964** |
+| 对比方法 | BM25、原文向量、Hybrid、摘要检索 |
 
+### 端到端 Hybrid RAG
 
-------
+| 指标 | 结果 |
+| --- | ---: |
+| Factual Correctness | 0.5630 |
+| Faithfulness | **0.9600** |
+| Semantic Similarity | **0.8280** |
 
-**激活虚拟环境**
+这些结果表明系统对检索证据的忠实度较高，但事实覆盖仍有提升空间；项目不把评测分数等同于真实生产准确率。
 
-```bash
-source rag_app_py310/bin/activate
-```
+## 代码导航
 
-------
+- [FastAPI 服务入口](api.py)：请求模型、检索路由、缓存证据和来源返回。
+- [RAG 主链](rag_chain/chain.py)：Prompt、检索、企业背景拼接与答案生成。
+- [摘要向量检索](rag_chain/retriever_config.py)：BGE Embedding、Chroma 与 MultiVectorRetriever。
+- [检索决策 Agent](rag_chain/retrieval_decision_agent.py)：新话题/追问路由。
+- [FAQ 匹配](rag_chain/faq_matcher.py)：高频问题快速通道。
+- [多轮对话记忆](rag_chain/memory.py)：历史消息构造与窗口控制。
+- [日志模块](rag_chain/log_utils.py)：关键链路可观测性。
+- [前端](frontend)：问答交互页面。
 
-**2. 开发与封装流程**
+## 本地运行
 
+推荐 Python 3.10。首次运行会下载 `BAAI/bge-large-zh-v1.5`，CPU 环境加载时间可能较长。
 
+~~~bash
+git clone https://github.com/Lagomfzx/rag-policy-demo.git
+cd rag-policy-demo
 
-**2.1 从 Jupyter Notebook 到模块化项目**
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 
-
-
-最初，我们在 Jupyter Notebook 中快速实验并验证了整个 RAG 问答流程。在实现过程中，我们分别完成了向量检索、文档切分、 prompt 构造、 LLM 调用和聊天记录管理。之后为了满足项目生产部署与后续扩展的需求，我们将原始 Notebook 代码封装为多个独立的 Python 模块，并构建出如下目录结构：
-
-```
-rag_project/
-├── rag_chain/
-│   ├── __init__.py
-│   ├── chain.py               # 负责 rag_chain 逻辑构建（prompt、LLM、Retriever）
-│   ├── retriever_config.py    # 向量检索器、embedding 模型、文档加载与切分
-│   └── memory.py              # 聊天记录构造、更新与管理函数
-├── test_chat.py               # 命令行交互测试脚本
-├── 惠企政策_去除<br>.md       # 原始政策文档（Markdown 格式）
-├── summaries.json             # 对应文档切分后的摘要或索引用于多向量检索
-├── requirements.txt           # 项目依赖列表
-└── .env                       # 环境变量文件（如 API Key 配置）
-```
-
-这种模块化的封装方式有助于代码的组织与维护，同时可以方便后续以 API 或 Web 服务形式部署整个问答系统。
-
-
-
-------
-
-
-
-**2.2 核心模块介绍**
-
-
-
-**2.2.1 retriever_config.py**
-
-​	•	**功能**：
-
-​	•	初始化 HuggingFace 系统推荐的 Embedding 模型（现采用新版 langchain-huggingface 模块中的 HuggingFaceEmbeddings，以兼容变更）。
-
-​	•	加载指定的文档（Markdown 文件和 txt 文件），进行文本切分（使用 RecursiveCharacterTextSplitter 或 MarkdownHeaderTextSplitter）。
-
-​	•	构建向量库（通过 Chroma）和对其包装成 MultiVectorRetriever 实例，从而在用户提问时能够进行相关文档检索。
-
-​	•	**关键实现**：
-
-​	•	利用 HuggingFaceEmbeddings 初始化 embedding 模型。
-
-​	•	使用 UUID 给文档块生成唯一标识，并将文档摘要与原始文档切分结果结合，存入向量库和内存存储中。
-
-
-
-**2.2.2 chain.py**
-
-​	•	**功能**：
-
-​	•	构建 Rag 问答系统的核心链路（rag_chain），利用 LCEL 风格组合各个处理节点。
-
-​	•	主要节点包括：
-
-​	•	**Retriever 节点**（使用 RunnableLambda 提取用户的 question 字段，并将其传递给构建好的 retriever）；
-
-​	•	**Prompt 模板节点**：将从 retriever 返回的文档内容，与用户问题和聊天记录数据组合成最终的 prompt；
-
-​	•	**LLM 节点**：调用智谱 AI 模型（ChatZhipuAI）基于 prompt 生成最终回答；
-
-​	•	**Output Parser**：解析 LLM 输出的文本格式返回最终结果。
-
-​	•	**关键实现**：
-
-​	•	使用 RunnableLambda 和 RunnablePassthrough 对输入字段进行拆分和合并，使得最终传给 prompt 节点的输入为扁平结构（包含 context、question、history 三个字段）。
-
-​	•	整个 rag_chain 调用方式设计为调用 rag_chain.invoke({...})，实现一轮问答生成。
-
-
-
-**2.2.3 memory.py**
-
-​	•	**功能**：
-
-​	•	提供构造和更新聊天记录的方法。
-
-​	•	包含 build_messages_from_history，将现有对话历史（例如作为消息对象列表）与当前用户输入拼接；
-
-​	•	包括 update_history，用于将新的一轮对话（用户问题和 AI 回答）追加到历史记录，并控制历史记录长度。
-
-​	•	**关键实现**：
-
-​	•	采用 LangChain 的 HumanMessage、AIMessage 等数据结构，使得生成的消息可以无缝插入到 prompt 模板中。
-
-
-
-**2.2.4 test_chat.py**
-
-​	•	**功能**：
-
-​	•	作为命令行交互测试脚本，帮助我们验证整个问答流程是否正常工作。
-
-​	•	读取用户输入、调用 rag_chain，输出 AI 回答，并实时更新聊天记录。
-
-​	•	**关键实现**：
-
-​	•	在循环中构造输入数据（包括历史记录和当前问题），调用 rag_chain.invoke()，然后将返回的结果打印到控制台。
-
-​	•	测试过程中还增加了一些调试打印（例如打印输入结构），方便排查问题。
-
-
-
-------
-
-
-
-**3. 前后端接口与整体连接**
-
-
-
-虽然目前项目主要以命令行测试为主，但将来的部署将使整个项目以网页形式出现。后端 API（如使用 FastAPI 构建）将负责：
-
-​	•	**接收前端请求**：前端页面（React、Vue 或其他）通过 AJAX / Fetch 请求将用户问题和对话历史发送到后端 API。
-
-​	•	**调用核心 rag_chain 逻辑**：后端 API 解析前端请求并调用已封装好的 rag_chain，得到 AI 答案。
-
-​	•	**返回 JSON 格式的回答**：将答案和更新后的对话历史打包返回给前端，前端通过状态管理更新聊天记录和页面展示。
-
-
-
-这种分层和分离的设计使得各部分模块职责单一、易于维护，同时在前端、后端和核心问答模块之间通过统一的 JSON 数据格式进行通信，保证系统扩展性和灵活性。
-
-
-
-------
-
-
-
-**4. 优化与未来扩展方向**
-
-
-
-在完成基本 RAG 问答系统和前后端接口后，还可在以下方面进一步优化扩展：
-
-​	1.	**性能优化与缓存**
-
-​	•	使用异步 FastAPI 接口、WebSocket 实现流式响应。
-
-​	•	引入缓存策略降低模型调用成本，防止重复查询。
-
-​	2.	**多用户会话管理**
-
-​	•	后端引入 session 或 token，根据用户 ID 维护聊天历史，避免前端每次上传全部历史，提升响应速度和用户体验。
-
-​	3.	**日志与监控**
-
-​	•	集成 LangSmith、Loguru 或其他监控工具，对系统的问答调用进行追踪和记录。
-
-​	•	自动生成错误报告和性能分析报告，为生产环境优化提供数据支持。
-
-​	4.	**前端体验增强**
-
-​	•	进一步优化前端页面效果（消息气泡、动画加载、自动滚动等）。
-
-​	•	支持多语言、个性化设置。
-
-​	5.	**部署策略**
-
-​	•	将后端 API 封装为 Docker 容器，借助 Nginx 反向代理和 HTTPS 部署到云服务器。
-
-​	•	设置 CI/CD 管道，实现自动测试、打包和部署。
-
-
-
-------
-
-
-
-**5. 结论**
-
-
-
-这份报告详细记录了你从 Jupyter Notebook 快速原型开发到模块化项目封装的全过程。通过拆分代码成多个独立模块（retriever_config、chain、memory、test_chat），你使系统更加结构化、易于扩展，并为后续实现完整的前后端分离、API 部署和多用户服务奠定了基础。
-
-同时，我们讨论了如何使用 FastAPI 构建后端接口，与前端 React 应用衔接，形成一个完整的网页问答产品。
-
-
-
-这种分层架构与模块化设计不仅提升了代码的健壮性与可维护性，还使得后期的功能扩展（如流式响应、多用户会话、日志监控、容器化部署）变得更加容易。
-
-
-
-如果你有更多需求或者需要进一步细化某一部分的实现细节，欢迎随时讨论，我们可以继续完善和扩展这份系统的功能与部署方案！
-
-
-
-------
-
-
-
-这就是整个项目的技术报告文档，希望对你有帮助！
+cp .env.example .env
+# 在 .env 中填写 DEEPSEEK_API_KEY；不要把真实密钥提交到 GitHub
+
+uvicorn api:app --host 127.0.0.1 --port 8001
+~~~
+
+浏览器访问 `http://127.0.0.1:8001/frontend/`，API 文档位于 `http://127.0.0.1:8001/docs`。
+
+### API 示例
+
+~~~bash
+curl -X POST http://127.0.0.1:8001/api/policy-qa \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "武汉的小微企业可以申请哪些融资支持？",
+    "history": [],
+    "enterprise_info": {
+      "region": "武汉",
+      "industry": "软件服务",
+      "years": 3,
+      "employees": 25,
+      "capital": "500万元"
+    }
+  }'
+~~~
+
+## 研究边界与后续工作
+
+- 当前知识库覆盖特定地区和版本的政策文本，政策变化后需要重新清洗、索引和评测。
+- 原型使用进程内缓存，不适合多用户并发；生产化需要会话隔离、持久化缓存和权限控制。
+- 需要继续补充拒答/冲突政策测试、检索消融实验和线上反馈闭环。
+- 仓库中的成本测算属于论文场景估计，不应解读为真实商业运营结果。
+
+## 技术栈
+
+Python · LangChain/LCEL · BGE Embedding · Chroma · MultiVectorRetriever · DeepSeek · FastAPI · RAG Evaluation · HTML/CSS/JavaScript
