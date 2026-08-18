@@ -1,6 +1,5 @@
 # chain.py
 
-
 import os
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema.runnable import RunnableLambda, RunnableParallel
@@ -9,19 +8,18 @@ from langchain_core.messages import HumanMessage, AIMessage
 from .retriever_config import build_retriever
 from langchain_deepseek import ChatDeepSeek
 
-# ✅ 加载 retriever
+# 加载 retriever
 retriever = build_retriever(
     md_path="惠企政策_去除<br>.md",
     summary_path="summaries_2.json"
 )
 
-# ✅ DeepSeek 配置：从环境变量加载 key
+# DeepSeek 配置：密钥仅从环境变量加载
 llm = ChatDeepSeek(
     model="deepseek-chat",
     temperature=0,
     max_tokens=None,
-    api_key = "sk-524bc7e636d34a6a8c102be54acbc16a"
-    # api_key=os.getenv("DEEPSEEK_API_KEY")
+    api_key=os.getenv("DEEPSEEK_API_KEY")
 )
 
 # ========== 工具函数 ==========
@@ -61,7 +59,7 @@ prompt = ChatPromptTemplate.from_messages([
      "你是一个基于RAG架构实现的服务于企业用户的惠企政策问答助手，你将会看到用户的问题和检索到的政策文件。请严格遵循以下规范进行回答：\n\n"
      "1. 判断用户输入是否为有效提问。若为“你好”“1”等无意义内容，请简洁回复，不要生成政策解读。\n"
      "2. 回答必须基于以下政策内容（context），禁止编造。若无法回答，请回复：“很抱歉，我未能在当前政策中找到相关内容。\n"
-     "3. 你会与客户进行多轮对话，回答的时候注意与客户聊天的上下文”\n"
+     "3. 你会与客户进行多轮对话，回答的时候注意与客户聊天的上下文"
      "4. 回答应自然、简洁、适合网页展示。\n"
      "5. 请勿主动在回答中生成“参考政策”或“政策来源”等信息，系统会自动添加。\n\n"
      "以下是可用政策内容：\n{context}"
