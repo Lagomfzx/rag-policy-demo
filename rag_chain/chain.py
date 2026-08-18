@@ -7,6 +7,9 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.messages import HumanMessage, AIMessage
 from .retriever_config import build_retriever
 from langchain_deepseek import ChatDeepSeek
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # 加载 retriever
 retriever = build_retriever(
