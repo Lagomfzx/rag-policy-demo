@@ -17,20 +17,14 @@
 
 ## 系统流程
 
-~~~mermaid
-flowchart LR
-    A["用户问题 + 企业信息 + 最近 5 轮对话"] --> B["检索决策 Agent"]
-    B -->|高频标准问题| C["FAQ 快速匹配"]
-    B -->|新主题| D["摘要向量检索"]
-    B -->|追问| E["复用上一轮证据"]
-    D --> F["MultiVectorRetriever"]
-    F --> G["返回对应原始政策段落"]
-    C --> H["答案"]
-    E --> I["LLM 生成"]
-    G --> I
-    I --> H
-    H --> J["政策名称 / 依据 / 原文摘录"]
-~~~
+![Agentic RAG：对话路由、混合检索与证据回溯](docs/agentic-rag-workflow.svg)
+
+<details>
+<summary>文字版流程（便于检索与无障碍阅读）</summary>
+
+检索决策 Agent 先判断输入类型：寒暄直接回复；连续追问调用最近 5 轮记忆并复用缓存证据；新主题先进行 FAQ 匹配，未命中时使用 BGE Embedding、Chroma 与摘要检索返回原始政策段落。最终响应保存答案、历史和政策来源，供下一轮追问使用。
+
+</details>
 
 ## 我的核心工作
 
