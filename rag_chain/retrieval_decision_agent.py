@@ -4,6 +4,9 @@ from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import Runnable
 from langchain_deepseek import ChatDeepSeek
+from dotenv import load_dotenv
+
+load_dotenv()
 
 llm = ChatDeepSeek(
     model="deepseek-chat",
