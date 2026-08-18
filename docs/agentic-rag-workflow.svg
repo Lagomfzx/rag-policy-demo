@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="720" viewBox="0 0 1600 720" role="img" aria-labelledby="title desc">
+  <title id="title">Agentic RAG workflow</title>
+  <desc id="desc">A request router sends greetings to direct response, follow-up questions to memory and cached evidence, and new topics through FAQ matching or summary-vector retrieval before grounded answer generation.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f8fafc}.outer{fill:#fff;stroke:#cbd5e1;stroke-width:2}.agent{fill:#ede9fe;stroke:#7c3aed;stroke-width:2}.decision{fill:#fff7ed;stroke:#ea580c;stroke-width:2}.direct{fill:#dbeafe;stroke:#2563eb;stroke-width:2}.memory{fill:#fef3c7;stroke:#d97706;stroke-width:2}.retrieval{fill:#ecfeff;stroke:#0891b2;stroke-width:2}.answer{fill:#dcfce7;stroke:#16a34a;stroke-width:2}.source{fill:#f1f5f9;stroke:#64748b;stroke-width:2}.title{font:700 30px -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;fill:#0f172a}.section{font:700 18px -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;fill:#334155}.text{font:600 16px -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;fill:#0f172a}.small{font:500 14px -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;fill:#475569}.label{font:600 13px -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;fill:#334155}.arrow{fill:none;stroke:#475569;stroke-width:2.5;marker-end:url(#arrow)}.dash{fill:none;stroke:#64748b;stroke-width:2;stroke-dasharray:8 7;marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#475569"/></marker>
+  </defs>
+  <rect class="bg" width="1600" height="720" rx="28"/>
+  <text class="title" x="65" y="58">Agentic RAG｜对话路由、混合检索与证据回溯</text>
+  <text class="small" x="65" y="86">新主题触发检索，连续追问复用证据，高频问题走 FAQ 快速通道</text>
+
+  <rect class="outer" x="45" y="120" width="1510" height="540" rx="26"/>
+  <text class="section" x="75" y="155">请求进入</text>
+  <rect class="source" x="75" y="270" width="180" height="90" rx="45"/>
+  <text class="text" x="165" y="307" text-anchor="middle">用户问题</text>
+  <text class="small" x="165" y="332" text-anchor="middle">企业信息 + 对话历史</text>
+  <path class="arrow" d="M255 315 H335"/>
+
+  <path class="agent" d="M435 240 L535 315 L435 390 L335 315 Z"/>
+  <text class="text" x="435" y="307" text-anchor="middle">Request Router</text>
+  <text class="small" x="435" y="332" text-anchor="middle">检索决策 Agent</text>
+
+  <path class="arrow" d="M435 240 V195 H620"/>
+  <text class="label" x="515" y="184" text-anchor="middle">寒暄 / 无效输入</text>
+  <rect class="direct" x="620" y="155" width="225" height="80" rx="18"/>
+  <text class="text" x="732" y="187" text-anchor="middle">Direct Response</text>
+  <text class="small" x="732" y="212" text-anchor="middle">简洁回复，不检索政策</text>
+
+  <path class="arrow" d="M535 315 H620"/>
+  <text class="label" x="578" y="302" text-anchor="middle">连续追问</text>
+  <rect class="memory" x="620" y="275" width="225" height="80" rx="18"/>
+  <text class="text" x="732" y="307" text-anchor="middle">Memory Recall</text>
+  <text class="small" x="732" y="332" text-anchor="middle">最近 5 轮 + 缓存证据</text>
+
+  <path class="arrow" d="M435 390 V470 H620"/>
+  <text class="label" x="520" y="458" text-anchor="middle">新主题</text>
+  <path class="decision" d="M732 400 L845 470 L732 540 L619 470 Z"/>
+  <text class="text" x="732" y="464" text-anchor="middle">FAQ Match?</text>
+  <text class="small" x="732" y="489" text-anchor="middle">高频标准问题</text>
+
+  <path class="arrow" d="M845 448 H920"/>
+  <text class="label" x="882" y="434" text-anchor="middle">命中</text>
+  <rect class="direct" x="920" y="405" width="220" height="78" rx="18"/>
+  <text class="text" x="1030" y="436" text-anchor="middle">FAQ Answer</text>
+  <text class="small" x="1030" y="460" text-anchor="middle">快速返回标准答案</text>
+
+  <path class="arrow" d="M845 492 H920"/>
+  <text class="label" x="882" y="522" text-anchor="middle">未命中</text>
+  <rect class="retrieval" x="920" y="500" width="220" height="96" rx="18"/>
+  <text class="text" x="1030" y="531" text-anchor="middle">Summary Retrieval</text>
+  <text class="small" x="1030" y="555" text-anchor="middle">BGE Embedding + Chroma</text>
+  <text class="small" x="1030" y="578" text-anchor="middle">摘要召回 → 返回原始段落</text>
+
+  <rect class="answer" x="1215" y="255" width="250" height="120" rx="22"/>
+  <text class="text" x="1340" y="292" text-anchor="middle">Grounded Answer</text>
+  <text class="small" x="1340" y="320" text-anchor="middle">基于证据生成回答</text>
+  <text class="small" x="1340" y="345" text-anchor="middle">附政策名称 / 依据 / 摘录</text>
+
+  <path class="arrow" d="M845 195 H1170 V492 H1215"/>
+  <path class="arrow" d="M845 315 H1215"/>
+  <path class="arrow" d="M1140 444 C1185 444 1185 355 1215 342"/>
+  <path class="arrow" d="M1140 548 C1195 548 1195 370 1230 358"/>
+
+  <rect class="source" x="1215" y="465" width="250" height="94" rx="20"/>
+  <text class="text" x="1340" y="498" text-anchor="middle">Response State</text>
+  <text class="small" x="1340" y="523" text-anchor="middle">答案 + 历史 + Sources</text>
+  <text class="small" x="1340" y="545" text-anchor="middle">供下一轮路由与追问复用</text>
+  <path class="arrow" d="M1340 375 V465"/>
+  <path class="dash" d="M1215 512 C1090 630 580 630 505 385"/>
+  <text class="label" x="825" y="625" text-anchor="middle">多轮对话反馈回路</text>
+</svg>
